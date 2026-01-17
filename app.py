@@ -4,21 +4,28 @@ import pandas as pd
 import json
 import urllib.parse
 import re
+import os
 from datetime import date
 from PIL import Image
 import folium
 from streamlit_folium import st_folium
 
-# --- 1. PAGE CONFIG ---
+# --- 1. CONFIGURATION ---
 st.set_page_config(page_title="Travel Planner", page_icon="✈️", layout="wide")
+
+# ==========================================
+# 💰 AFFILIATE SETTINGS (MONEY ZONE)
+# ==========================================
+# Paste your TravelPayouts Marker or ID here. 
+# If you don't have one yet, leave it as is.
+TRAVELPAYOUTS_ID = "YOUR_ID_HERE" 
+# ==========================================
 
 # --- 2. STYLE ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
-    html, body, [class*="css"], font, span, div, p, h1, h2, h3, h4, h5, h6 {
-        font-family: 'Outfit', sans-serif !important;
-    }
+    html, body, [class*="css"], font, span, div, p, h1, h2, h3, h4, h5, h6 { font-family: 'Outfit', sans-serif !important; }
     .main-title { font-size: 3.5rem; color: #1a73e8; font-weight: 700; text-align: center; margin-top: -20px; }
     .currency-badge { background-color: #e8f0fe; color: #1a73e8; padding: 5px 15px; border-radius: 20px; font-weight: 600; font-size: 1rem; display: inline-block; margin-top: 10px; border: 1px solid #d2e3fc; }
     .stButton>button { background-color: #1a73e8; color: white; border: none; border-radius: 24px; height: 55px; font-size: 18px; font-weight: 600; width: 100%; transition: all 0.3s; }
@@ -31,11 +38,17 @@ st.markdown("""
 if 'generated_trip' not in st.session_state: st.session_state.generated_trip = None
 if 'map_data' not in st.session_state: st.session_state.map_data = None
 
-# --- 4. AUTHENTICATION ---
-try:
-    if "GOOGLE_API_KEY" in st.secrets: api_key = st.secrets["GOOGLE_API_KEY"]
-    else: api_key = st.text_input("API Key", type="password")
-except: api_key = st.text_input("API Key", type="password")
+# --- 4. AUTHENTICATION (RENDER COMPATIBLE) ---
+api_key = None
+if "GOOGLE_API_KEY" in st.secrets:
+    api_key = st.secrets["GOOGLE_API_KEY"]
+elif "GOOGLE_API_KEY" in os.environ:
+    api_key = os.environ["GOOGLE_API_KEY"]
+    
+if not api_key:
+    with st.sidebar:
+        st.warning("⚠️ No API key found.")
+        api_key = st.text_input("Enter API Key manually", type="password")
 
 # --- 5. SIDEBAR ---
 with st.sidebar:
@@ -58,24 +71,21 @@ with st.sidebar:
 
 # --- 6. FLIGHT LINKS ENGINE (MONETIZED) ---
 def get_flight_links(org, dst, date_obj, flexible):
-    # --- AFFILIATE SETTINGS (REPLACE THESE LATER) ---
-    # Sign up at TravelPayouts or Skyscanner to get real IDs
-    affiliate_tag = "YOUR_AFFILIATE_ID" 
-    
     safe_org = urllib.parse.quote(org)
     safe_dst = urllib.parse.quote(dst)
     date_str = date_obj.strftime('%Y-%m-%d')
     
-    # Google Flights (Hard to monetize, but good for user exp)
     gf_link = f"https://www.google.com/travel/flights?q=Flights%20to%20{safe_dst}%20from%20{safe_org}%20on%20{date_str}"
     
-    # Skyscanner (Monetizable)
+    # Logic: If we have an ID, we append it.
+    affiliate_suffix = f"?marker={TRAVELPAYOUTS_ID}" if TRAVELPAYOUTS_ID != "YOUR_ID_HERE" else ""
+    
     if flexible:
         month_str = date_obj.strftime('%y%m')
-        sky_link = f"https://www.skyscanner.com/transport/flights/{safe_org[:3]}/{safe_dst[:3]}/{month_str}?associateid={affiliate_tag}"
+        sky_link = f"https://www.skyscanner.com/transport/flights/{safe_org[:3]}/{safe_dst[:3]}/{month_str}{affiliate_suffix}"
     else:
         day_str = date_obj.strftime('%y%m%d')
-        sky_link = f"https://www.skyscanner.com/transport/flights/{safe_org[:3]}/{safe_dst[:3]}/{day_str}?associateid={affiliate_tag}"
+        sky_link = f"https://www.skyscanner.com/transport/flights/{safe_org[:3]}/{safe_dst[:3]}/{day_str}{affiliate_suffix}"
         
     return gf_link, sky_link
 
