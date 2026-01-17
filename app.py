@@ -14,6 +14,12 @@ import streamlit.components.v1 as components
 # --- 1. CONFIGURATION ---
 st.set_page_config(page_title="Travel Planner", page_icon="✈️", layout="wide")
 
+# ==========================================
+# 💰 AFFILIATE SETTINGS
+# ==========================================
+TRAVELPAYOUTS_ID = "YOUR_ID_HERE" 
+# ==========================================
+
 # --- 2. STYLE ---
 st.markdown("""
 <style>
@@ -69,14 +75,12 @@ def get_flight_links(org, dst, date_obj, flexible):
     date_str = date_obj.strftime('%Y-%m-%d')
     gf_link = f"https://www.google.com/travel/flights?q=Flights%20to%20{safe_dst}%20from%20{safe_org}%20on%20{date_str}"
     
-    # Simple Skyscanner Link (Fallback)
     if flexible:
         month_str = date_obj.strftime('%y%m')
         sky_link = f"https://www.skyscanner.com/transport/flights/{safe_org[:3]}/{safe_dst[:3]}/{month_str}"
     else:
         day_str = date_obj.strftime('%y%m%d')
         sky_link = f"https://www.skyscanner.com/transport/flights/{safe_org[:3]}/{safe_dst[:3]}/{day_str}"
-        
     return gf_link, sky_link
 
 # --- 7. MAIN APP ---
@@ -103,7 +107,7 @@ if st.button("🚀 Plan My Trip"):
         Dates: {date_desc}. Interests: {interests}.
         IMPORTANT: Provide ALL prices, flight estimates, and budget totals in {currency}.
         CRITICAL FORMATTING RULES:
-        1. **MATHS LOGIC:** If using the Dollar sign ($), YOU MUST escape it with a backslash (write it as $) to prevent it from triggering LaTeX math formatting.
+        1. **MATHS LOGIC:** If using the Dollar sign ($), YOU MUST escape it with a backslash (write it as \$) to prevent it from triggering LaTeX math formatting.
         2. Use lots of emojis (✈️, 🏨, 🍜, 📸).
         
         REQUIRED SECTIONS:
@@ -149,13 +153,9 @@ if st.session_state.generated_trip:
         st.markdown(clean_text, unsafe_allow_html=True)
         st.download_button("💾 Download Itinerary", clean_text, "my_trip.md")
     
-    # --- TAB 2: FLIGHT BOOKING (WITH WIDGET) ---
     with tab2:
         st.success(f"Best flight options for {origin} ➡️ {destination}")
-        
-        # 1. TRAVELPAYOUTS WIDGET
         st.markdown("### 🎟️ Search Flights")
-        # This box runs your Script inside the app
         components.html("""
             <script data-noptimize="1" data-cfasync="false" data-wpfc-render="false">
               (function () {
@@ -166,10 +166,7 @@ if st.session_state.generated_trip:
               })();
             </script>
         """, height=200, scrolling=False)
-        
         st.divider()
-        
-        # 2. BACKUP LINKS
         st.markdown("### 🔗 Direct Links")
         gf, sky = get_flight_links(origin, destination, start_date, is_flexible)
         c1, c2 = st.columns(2)
