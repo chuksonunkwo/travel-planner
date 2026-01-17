@@ -9,17 +9,10 @@ from datetime import date
 from PIL import Image
 import folium
 from streamlit_folium import st_folium
+import streamlit.components.v1 as components
 
 # --- 1. CONFIGURATION ---
 st.set_page_config(page_title="Travel Planner", page_icon="✈️", layout="wide")
-
-# ==========================================
-# 💰 AFFILIATE SETTINGS (MONEY ZONE)
-# ==========================================
-# Paste your TravelPayouts Marker or ID here. 
-# If you don't have one yet, leave it as is.
-TRAVELPAYOUTS_ID = "YOUR_ID_HERE" 
-# ==========================================
 
 # --- 2. STYLE ---
 st.markdown("""
@@ -38,7 +31,7 @@ st.markdown("""
 if 'generated_trip' not in st.session_state: st.session_state.generated_trip = None
 if 'map_data' not in st.session_state: st.session_state.map_data = None
 
-# --- 4. AUTHENTICATION (RENDER COMPATIBLE) ---
+# --- 4. AUTHENTICATION ---
 api_key = None
 if "GOOGLE_API_KEY" in st.secrets:
     api_key = st.secrets["GOOGLE_API_KEY"]
@@ -69,23 +62,20 @@ with st.sidebar:
     st.info("**Travel Planner Pro v1.0**\nPrices are estimates.")
     st.caption("© 2025 Travel Planner Inc.")
 
-# --- 6. FLIGHT LINKS ENGINE (MONETIZED) ---
+# --- 6. FLIGHT LINKS ENGINE ---
 def get_flight_links(org, dst, date_obj, flexible):
     safe_org = urllib.parse.quote(org)
     safe_dst = urllib.parse.quote(dst)
     date_str = date_obj.strftime('%Y-%m-%d')
-    
     gf_link = f"https://www.google.com/travel/flights?q=Flights%20to%20{safe_dst}%20from%20{safe_org}%20on%20{date_str}"
     
-    # Logic: If we have an ID, we append it.
-    affiliate_suffix = f"?marker={TRAVELPAYOUTS_ID}" if TRAVELPAYOUTS_ID != "YOUR_ID_HERE" else ""
-    
+    # Simple Skyscanner Link (Fallback)
     if flexible:
         month_str = date_obj.strftime('%y%m')
-        sky_link = f"https://www.skyscanner.com/transport/flights/{safe_org[:3]}/{safe_dst[:3]}/{month_str}{affiliate_suffix}"
+        sky_link = f"https://www.skyscanner.com/transport/flights/{safe_org[:3]}/{safe_dst[:3]}/{month_str}"
     else:
         day_str = date_obj.strftime('%y%m%d')
-        sky_link = f"https://www.skyscanner.com/transport/flights/{safe_org[:3]}/{safe_dst[:3]}/{day_str}{affiliate_suffix}"
+        sky_link = f"https://www.skyscanner.com/transport/flights/{safe_org[:3]}/{safe_dst[:3]}/{day_str}"
         
     return gf_link, sky_link
 
@@ -158,12 +148,34 @@ if st.session_state.generated_trip:
         clean_text = st.session_state.generated_trip.split("## 4. MAP_DATA_JSON")[0]
         st.markdown(clean_text, unsafe_allow_html=True)
         st.download_button("💾 Download Itinerary", clean_text, "my_trip.md")
+    
+    # --- TAB 2: FLIGHT BOOKING (WITH WIDGET) ---
     with tab2:
         st.success(f"Best flight options for {origin} ➡️ {destination}")
+        
+        # 1. TRAVELPAYOUTS WIDGET
+        st.markdown("### 🎟️ Search Flights")
+        # This box runs your Script inside the app
+        components.html("""
+            <script data-noptimize="1" data-cfasync="false" data-wpfc-render="false">
+              (function () {
+                  var script = document.createElement("script");
+                  script.async = 1;
+                  script.src = 'https://emrld.ltd/NDg5NzAy.js?t=489702';
+                  document.head.appendChild(script);
+              })();
+            </script>
+        """, height=200, scrolling=False)
+        
+        st.divider()
+        
+        # 2. BACKUP LINKS
+        st.markdown("### 🔗 Direct Links")
         gf, sky = get_flight_links(origin, destination, start_date, is_flexible)
         c1, c2 = st.columns(2)
         c1.link_button("🔎 Google Flights", gf)
         c2.link_button("🔎 Skyscanner Deals", sky)
+        
     with tab3:
         if st.session_state.map_data is not None and not st.session_state.map_data.empty:
             df = st.session_state.map_data
